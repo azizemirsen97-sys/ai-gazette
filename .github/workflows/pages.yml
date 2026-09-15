@@ -3,8 +3,11 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
+  schedule:
+    - cron: "17 0,3,6,9,12,15,18,21 * * *"
+    - cron: "47 1,4,7,10,13,16,19,22 * * *"
 permissions:
-  contents: read
+  contents: write
   pages: write
   id-token: write
 concurrency:
@@ -18,6 +21,17 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Refresh public listings
+        run: python3 scripts/refresh.py shared-state.json
+      - name: Preserve captured history
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add shared-state.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Refresh public source listings"
+            git push
+          fi
       - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
