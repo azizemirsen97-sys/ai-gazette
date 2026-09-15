@@ -67,3 +67,7 @@ details.takeaway[open]>.takeaway-head .idea-toggle::before{content:'−'}
 [data-theme="dark"] dialog input,[data-theme="dark"] #ask-question,[data-theme="dark"] .transcript-import textarea{background:var(--panel);color:var(--ink);border-color:var(--rule)}
 .source-logo{background:#fff}
 @media(max-width:480px){.topline-actions{gap:8px}.topline-actions>span{display:none}}
+
+/* Fit the longer publication name across desktop and mobile widths. */
+.masthead{font-size:clamp(28px,7vw,100px);letter-spacing:-.045em}
+@media(max-width:720px){.masthead{font-size:clamp(25px,7.8vw,54px)}}
