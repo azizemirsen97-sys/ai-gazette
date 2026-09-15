@@ -1,3 +1,14 @@
+const themeToggle=document.getElementById('theme-toggle');
+function setGazetteTheme(theme){
+ document.documentElement.dataset.theme=theme;
+ const dark=theme==='dark';
+ themeToggle.setAttribute('aria-pressed',String(dark));
+ themeToggle.setAttribute('aria-label',dark?'Switch to light mode':'Switch to dark mode');
+ themeToggle.innerHTML=`<span aria-hidden="true">${dark?'☀':'☾'}</span> <span class="theme-label">${dark?'Light mode':'Dark mode'}</span>`;
+}
+setGazetteTheme(document.documentElement.dataset.theme||'light');
+themeToggle.addEventListener('click',()=>{const theme=document.documentElement.dataset.theme==='dark'?'light':'dark';setGazetteTheme(theme);try{localStorage.setItem('gazette-theme',theme)}catch(e){}});
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',event=>{try{if(!localStorage.getItem('gazette-theme'))setGazetteTheme(event.matches?'dark':'light')}catch(e){}});
 let data=null, example=null, last='', expanded=new Set(), openIdeas=new Set();
 const askDrafts={analysis:'',example:''};
 const askStyles=document.createElement('link');askStyles.rel='stylesheet';askStyles.href='./ask.css';document.head.append(askStyles);
