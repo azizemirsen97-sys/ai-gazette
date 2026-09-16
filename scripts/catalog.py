@@ -37,7 +37,6 @@ SOURCES=[
  {'id':'sabrina-halper','name':'The Sabrina Halper Show','module':'figures','feed':'https://anchor.fm/s/9c3d9f04/podcast/rss','days':30},
  {'id':'y-combinator','name':'Y Combinator Startup Podcast','module':'figures','feed':'https://anchor.fm/s/8c1524bc/podcast/rss','days':30},
  {'id':'sourcery','name':'Sourcery with Molly O’Shea','module':'figures','feed':'https://anchor.fm/s/f192713c/podcast/rss','days':30},
- {'id':'ai-engineer','name':'AI Engineer','module':'figures','feed':'https://www.youtube.com/feeds/videos.xml?channel_id=UCLKPca3kwwd-B59HNr-_lvA','days':30,'logo':'https://yt3.googleusercontent.com/ajVemEB89DAOemsbfuMY6ZOWXJAACx3cbty9z21jeqRKODaVkDBSRun1b1xfQJljEsziOWS_Mg=s200-c-k-c0x00ffffff-no-rj'},
  {'id':'tbpn','name':'TBPN','module':'tbpn','feed':'https://feeds.transistor.fm/technology-brother','days':8},
  {'id':'openai','name':'OpenAI','module':'products','feed':'https://openai.com/news/rss.xml','days':120,'categories':['Product'],'logo':'/openai-logo.png'},
  {'id':'anthropic','name':'Anthropic','module':'products','page':'https://www.anthropic.com/news','parser':'anthropic','days':120,'logo':'/anthropic-logo.png'},
