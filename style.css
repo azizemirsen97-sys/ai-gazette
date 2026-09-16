@@ -48,7 +48,7 @@ details.takeaway[open]>.takeaway-head .idea-toggle::before{content:'−'}
 .tbpn-episode-date{padding:12px 14px;margin-bottom:16px;background:var(--panel);font-size:16px;font-weight:600;line-height:1.5}
 .tbpn-episode-date>span{display:block;font-size:10px;letter-spacing:1px;color:var(--red);margin-bottom:4px}
 
-.module-product-source{margin-bottom:11px}.module-product-source .source-logo,.module-product-source .source-placeholder{width:30px;height:30px}.module-product-source .source-badge{gap:8px}.module-product-source .source-badge strong{font-size:11px}.module-product-source .source-sub{font-size:10px}.readonly [data-act="refresh"],.readonly [data-act="save"],.readonly [data-nav="saved"],.readonly [data-nav="history"],.readonly #connection,.readonly .transcript-import,.readonly .source-health{display:none!important}
+.module-product-source{margin-bottom:11px}.module-product-source .source-logo,.module-product-source .source-placeholder{width:30px;height:30px}.module-product-source .source-badge{gap:8px}.module-product-source .source-badge strong{font-size:11px}.module-product-source .source-sub{font-size:10px}.readonly [data-act="refresh"],.readonly [data-nav="history"],.readonly #connection,.readonly .transcript-import,.readonly .source-health{display:none!important}
 .diet-news{margin:0;padding-left:18px;font-size:14px;line-height:1.5}
 .diet-news li{padding:3px 0}
 .diet-news li::marker{color:var(--red)}
