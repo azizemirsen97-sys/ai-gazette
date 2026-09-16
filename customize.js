@@ -1,0 +1,21 @@
+const preferenceKey='gazette-preferences';
+const followedFigures=['Gavin Baker','Brad Gerstner','Philippe Laffont','Thomas Laffont','Bill Gurley'];
+function readPreferences(){try{const p=JSON.parse(localStorage.getItem(preferenceKey)||'{}');return {sources:Array.isArray(p.sources)?p.sources:[],modules:Array.isArray(p.modules)?p.modules:[],figures:Array.isArray(p.figures)?p.figures:[]}}catch(e){return {sources:[],modules:[],figures:[]}}}
+let preferences=readPreferences();
+function moduleEnabled(id){return !preferences.modules.includes(id)}
+function followsItem(item){
+ if(item.source_id!=='figure-search'&&!preferences.sources.includes(item.source_id||'dwarkesh'))return true;
+ const text=[...(item.guests||[]),item.title].join(' ').toLowerCase();
+ return item.module==='figures'&&followedFigures.some(name=>!preferences.figures.includes(name)&&text.includes(name.toLowerCase()));
+}
+const customizeDialog=document.createElement('dialog');customizeDialog.id='customize-dialog';
+customizeDialog.innerHTML='<div class="dialog-heading"><h2>Make it your Gazette.</h2><button type="button" id="customize-close" aria-label="Close customization">×</button></div><p>Choose your sources and sections. Your choices stay in this browser, without an account. Saved articles stay in Saved even if you unfollow their source.</p><div id="customize-options">Loading sources…</div><p id="customize-error" role="status"></p><div class="customize-actions"><button type="button" class="button" id="customize-reset">Reset to defaults</button><button type="button" class="button primary" id="customize-apply">Apply choices</button></div>';
+document.body.append(customizeDialog);
+let sourceOptions=[];
+function choice(kind,id,name,logo,enabled){return `<label class="follow-choice"><input type="checkbox" data-kind="${kind}" value="${esc(id)}" ${enabled?'checked':''}>${logo?`<img src="${esc(logo.startsWith('/')?'.'+logo:logo)}" alt="" width="30" height="30">`:''}<span>${esc(name)}</span></label>`}
+function drawChoices(p){document.querySelector('#customize-options').innerHTML='<h3>Sections</h3><div class="follow-grid">'+Object.entries(moduleNames).map(([id,name])=>choice('modules',id,name,'',!p.modules.includes(id))).join('')+'</div>'+Object.entries(moduleNames).filter(([id])=>sourceOptions.some(s=>s.module===id)).map(([id,name])=>`<h3>${esc(name)} sources</h3><div class="follow-grid">${sourceOptions.filter(s=>s.module===id).map(s=>choice('sources',s.id,s.name,s.logo,!p.sources.includes(s.id))).join('')}</div>`).join('')+'<h3>Figures</h3><p>Include matching episodes from the captured Figures catalog even when you unfollow their podcast. This does not search the whole web.</p><div class="follow-grid">'+followedFigures.map(name=>choice('figures',name,name,'',!p.figures.includes(name))).join('')+'</div>'}
+document.querySelector('#customize-open').onclick=async()=>{document.querySelector('#customize-error').textContent='';customizeDialog.showModal();try{if(!sourceOptions.length){const r=await fetch('./source-options.json');if(!r.ok)throw Error();sourceOptions=await r.json()}drawChoices(preferences)}catch(e){document.querySelector('#customize-options').textContent='Unable to load sources. Close this panel and try again.'}};
+document.querySelector('#customize-close').onclick=()=>customizeDialog.close();
+document.querySelector('#customize-reset').onclick=()=>drawChoices({sources:[],modules:[],figures:[]});
+document.querySelector('#customize-apply').onclick=()=>{if(!sourceOptions.length)return;const next={sources:[],modules:[],figures:[]};customizeDialog.querySelectorAll('input[data-kind]').forEach(input=>{if(!input.checked)next[input.dataset.kind].push(input.value)});try{localStorage.setItem(preferenceKey,JSON.stringify(next));preferences=next;customizeDialog.close();render();notice('Your Gazette is updated')}catch(e){document.querySelector('#customize-error').textContent='Your browser could not save these choices. Allow site storage and try again.'}};
+window.addEventListener('storage',event=>{if(event.key===preferenceKey){preferences=readPreferences();render()}});
