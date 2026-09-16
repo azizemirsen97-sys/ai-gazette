@@ -9,8 +9,10 @@ import text_parser
 
 def collect(source):
     raw = catalog.fetch(source.get('feed') or source['page'])
-    parser = catalog.parse_epoch if source['id']=='epoch-ai' else catalog.parse_product_page if source.get('parser') else catalog.parse_feed
-    return parser(text_parser,source,raw)
+    return catalog.parse_source(text_parser,source,raw)
+
+def canonical_url(url):
+    return (url or '').rstrip('/').replace('https://www.','https://',1)
 
 def refresh(snapshot, fetch_source=collect):
     stamp=datetime.now(timezone.utc).isoformat()
@@ -25,6 +27,8 @@ def refresh(snapshot, fetch_source=collect):
                 captured=future.result()
                 for item in captured:
                     if item['url'].rstrip('/')==snapshot['episode']['url'].rstrip('/'):continue
+                    for existing_id,existing in list(items.items()):
+                        if existing_id!=item['id'] and canonical_url(existing.get('url'))==canonical_url(item['url']):del items[existing_id]
                     old=items.get(item['id'],{})
                     items[item['id']]={**old,**item,'status':'ready' if old.get('result') else 'idle','saved':0,'error':None,'result':old.get('result'),'transcript_words':0,'provenance':None}
                 statuses[source['id']]={'id':source['id'],'checked':stamp,'error':None,'count':len(captured)}
