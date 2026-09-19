@@ -1,9 +1,11 @@
 // Each reader's X brief and xAI credential stay in that reader's browser.
 const X_KEY_STORAGE='gazette-xai-key';
 const X_BRIEF_STORAGE='gazette-x-brief-v1';
+const X_BRIEF_ATTEMPT_STORAGE='gazette-x-brief-last-attempt';
 const X_BRIEF_INTERVAL=90*60*1000;
 let xBrief=null,xBriefWorking=false,xBriefError='';
 let xBriefAttemptAt=0;
+try{xBriefAttemptAt=Number(localStorage.getItem(X_BRIEF_ATTEMPT_STORAGE))||0}catch(e){}
 const X_BRIEF_FORMAT={type:'json_schema',name:'x_brief',strict:true,schema:{type:'object',properties:{items:{type:'array',items:{type:'object',properties:{headline:{type:'string'},explanation:{type:'string'},signal:{type:'string'},posts:{type:'array',items:{type:'object',properties:{url:{type:'string'},handle:{type:'string'}},required:['url','handle'],additionalProperties:false}}},required:['headline','explanation','signal','posts'],additionalProperties:false}}},required:['items'],additionalProperties:false}};
 try{xBrief=JSON.parse(localStorage.getItem(X_BRIEF_STORAGE)||'null')}catch(e){}
 function xKey(){try{return localStorage.getItem(X_KEY_STORAGE)||''}catch(e){return ''}}
@@ -48,7 +50,7 @@ function parseXBrief(response){
 async function refreshXBrief(force=false){
  if(xBriefWorking||!xKey()||typeof data==='undefined'||!data)return;
  if(!force&&((xBrief?.generated_at&&Date.now()-new Date(xBrief.generated_at).getTime()<X_BRIEF_INTERVAL)||Date.now()-xBriefAttemptAt<X_BRIEF_INTERVAL))return;
- xBriefAttemptAt=Date.now();xBriefWorking=true;xBriefError='';render();
+ xBriefAttemptAt=Date.now();try{localStorage.setItem(X_BRIEF_ATTEMPT_STORAGE,String(xBriefAttemptAt))}catch(e){}xBriefWorking=true;xBriefError='';render();
  const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),120000);
  try{
   const response=await fetch('https://api.x.ai/v1/responses',{
