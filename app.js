@@ -60,8 +60,8 @@ function home(saved=false){if(saved){const items=allItems().filter(e=>e.saved);m
 main.innerHTML=`${Object.keys(moduleNames).every(id=>!moduleEnabled(id))?'<div class="empty"><h2>Your Gazette is quiet.</h2><p>Open Customize your Gazette to turn a section back on.</p></div>':''}${liveModule('authorities')}
 <div class="module-grid">
 ${moduleEnabled('x')?window.xBriefHome():''}
-${liveCompactModule('products','What launched, and what it lets you do.')}
 ${moduleEnabled('figures')?`<div class="module-wide">${liveModule('figures')}</div>`:''}
+${liveCompactModule('products','What launched, and what it lets you do.')}
 ${liveTbpn()}
 ${liveCompactModule('economics','Policy and speeches from primary sources.')}
 </div><div class="source-health">${(data.sources||[]).map(x=>`<p>${esc(x.id)} · ${x.error?esc(x.error):'Checked '+dateLabel(x.checked)+' · '+x.count+' recent releases'}</p>`).join('')}</div>`}
