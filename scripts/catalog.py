@@ -41,11 +41,11 @@ SOURCES=[
  {'id':'openai','name':'OpenAI','module':'products','feed':'https://openai.com/news/rss.xml','days':120,'categories':['Product'],'logo':'/openai-logo.png'},
  {'id':'anthropic','name':'Anthropic','module':'products','page':'https://www.anthropic.com/news','parser':'anthropic','days':120,'logo':'/anthropic-logo.png'},
  {'id':'cursor','name':'Cursor','module':'products','feed':'https://cursor.com/changelog/rss.xml','days':120,'logo':'/cursor-logo.png'},
- {'id':'nvidia','name':'NVIDIA','module':'products','feed':'https://blogs.nvidia.com/feed/','days':120,'include_keywords':['launch','introduc','unveil','release','available','new','AI','robot'],'logo':'/nvidia-logo.png'},
- {'id':'amd','name':'AMD','module':'products','page':'https://newsroom.amd.com/category/ai/','parser':'amd','days':120,'include_keywords':['launch','introduc','unveil','release','available','new','ROCm'],'logo':'/amd-logo.png'},
- {'id':'deepmind','name':'Google DeepMind','module':'products','feed':'https://deepmind.google/blog/rss.xml','days':120,'include_keywords':['introduc','model','agent','gemini','alphafold','imagen','veo','robot','release','launch'],'logo':'/deepmind-logo.png'},
+ {'id':'nvidia','name':'NVIDIA','module':'products','feed':'https://blogs.nvidia.com/feed/','days':120,'title_keywords':['launch','introduc','unveil','release','available','debut'],'exclude_title_keywords':['geforce now','game ready','rtx remix'],'logo':'/nvidia-logo.png'},
+ {'id':'amd','name':'AMD','module':'products','page':'https://newsroom.amd.com/category/ai/','parser':'amd','days':120,'title_keywords':['launch','introduc','unveil','release','available','debut','ROCm'],'logo':'/amd-logo.png'},
+ {'id':'deepmind','name':'Google DeepMind','module':'products','feed':'https://deepmind.google/blog/rss.xml','days':120,'title_keywords':['introduc','launch','release','available','debut','gemini','alphafold','imagen','veo'],'logo':'/deepmind-logo.png'},
  {'id':'mistral','name':'Mistral AI','module':'products','feed':'https://mistral.ai/news/rss','days':120,'include_keywords':['introduc','launch','release','agent','model','vibe','search','studio','mcp','ocr','voice','workflow'],'logo':'/mistral-logo.png'},
- {'id':'stripe','name':'Stripe','module':'products','feed':'https://stripe.com/blog/feed.rss','days':120,'include_keywords':['AI','agent','model','launch','introduc'],'logo':'/stripe-logo.png'},
+ {'id':'stripe','name':'Stripe','module':'products','feed':'https://stripe.com/blog/feed.rss','days':120,'title_keywords':['launch','introduc','release','available','new product','agent toolkit','ai product'],'logo':'/stripe-logo.png'},
  {'id':'ramp','name':'Ramp','module':'products','page':'https://ramp.com/product-releases','parser':'ramp','days':120,'logo':'/ramp-logo.png'},
  {'id':'fed-policy','name':'Federal Reserve · Monetary policy','module':'economics','feed':'https://www.federalreserve.gov/feeds/press_monetary.xml','days':30,'logo':''},
  {'id':'fed-speeches','name':'Federal Reserve · Speeches','module':'economics','feed':'https://www.federalreserve.gov/feeds/speeches_and_testimony.xml','days':30,'logo':''},
@@ -53,12 +53,21 @@ SOURCES=[
 
 def fetch(url):
  if urlparse(url).scheme!='https':raise ValueError('Source must use HTTPS.')
- p=subprocess.run(['curl','-fLsS','--max-time','40','--max-filesize','15000000','--proto','=https','--proto-redir','=https','-A','Mozilla/5.0',url],capture_output=True)
+ p=subprocess.run(['curl','-fLsS','--compressed','--max-time','40','--max-filesize','15000000','--proto','=https','--proto-redir','=https','-A','Mozilla/5.0',url],capture_output=True)
  if p.returncode:raise ValueError('Source unavailable. Try again later.')
- return p.stdout.decode('utf-8')
+ # A few publisher feeds occasionally contain one malformed byte. Keep the
+ # rest of the valid feed instead of treating the entire source as offline.
+ return p.stdout.decode('utf-8',errors='replace')
 
 def plain(app,html):
  p=app.PageText();p.feed(html or '');return '\n'.join(x.strip() for x in ''.join(p.parts).splitlines() if x.strip())
+
+def matches_source_filter(source,title,description=''):
+ title=(title or '').lower();haystack=(title+' '+(description or '')).lower()
+ if source.get('exclude_title_keywords') and any(word.lower() in title for word in source['exclude_title_keywords']):return False
+ if source.get('title_keywords') and not any(word.lower() in title for word in source['title_keywords']):return False
+ if source.get('include_keywords') and not any(word.lower() in haystack for word in source['include_keywords']):return False
+ return True
 
 def parse_feed(app,source,xml):
  root=ET.fromstring(xml);channel=root.find('channel')
@@ -88,15 +97,15 @@ def parse_feed(app,source,xml):
   if published < datetime.now(timezone.utc)-timedelta(days=source.get('days',30)):continue
   categories=[x.text.strip() for x in item.findall('category') if x.text]
   if source.get('categories') and not set(categories).intersection(source['categories']):continue
-  haystack=(title+' '+item.findtext('description','')).lower()
-  if source.get('include_keywords') and not any(word.lower() in haystack for word in source['include_keywords']):continue
+  description=item.findtext('description','')
+  if not matches_source_filter(source,title,description):continue
   enclosure=item.find('enclosure');transcript=item.find('{https://podcastindex.org/namespace/1.0}transcript')
   duration=item.findtext('{http://www.itunes.com/dtds/podcast-1.0.dtd}duration','')
   identifier=hashlib.sha256(url.rstrip('/').encode()).hexdigest()[:24]
   logo=source.get('logo','')
   if not logo:
    image=channel.find('{http://www.itunes.com/dtds/podcast-1.0.dtd}image');logo=image.get('href','') if image is not None else channel.findtext('image/url','')
-  items.append(dict(id=identifier,url=url,title=title,published=published.isoformat(),source=source['name'],source_id=source['id'],module=source['module'],guests=[],format='Podcast' if enclosure is not None and enclosure.get('type','').startswith(('audio/','video/')) else 'Publication',length=duration,logo=logo,video='',description=plain(app,item.findtext('description',''))[:5000],transcript_url=transcript.get('url') if transcript is not None else None,categories=categories,is_diet=source['id']=='tbpn' and 'diet tbpn' in title.lower()))
+  items.append(dict(id=identifier,url=url,title=title,published=published.isoformat(),source=source['name'],source_id=source['id'],module=source['module'],guests=[],format='Podcast' if enclosure is not None and enclosure.get('type','').startswith(('audio/','video/')) else 'Publication',length=duration,logo=logo,video='',description=plain(app,description)[:5000],transcript_url=transcript.get('url') if transcript is not None else None,categories=categories,is_diet=source['id']=='tbpn' and 'diet tbpn' in title.lower()))
   if enclosure is not None and enclosure.get('type','').startswith('audio/'):
    items[-1]['audio_url']=enclosure.get('url','')
   video=re.search(r'https://(?:www\.)?(?:youtube\.com/watch\?v=[\w-]+|youtu\.be/[\w-]+)',item.findtext('description',''))
@@ -193,8 +202,7 @@ def parse_product_page(app,source,html):
   after=text[match.end():].strip();after=re.sub(r'^(Product|Artificial Intelligence|Software|Embedded|Data Center)\s+','',after)
   if not title:
    slug=href.rstrip('/').split('/')[-1];title=' '.join(x.capitalize() if x.lower() not in ('ai','amd') else x.upper() for x in slug.split('-'))
-  haystack=(title+' '+after).lower()
-  if source.get('include_keywords') and not any(word.lower() in haystack for word in source['include_keywords']):continue
+  if not matches_source_filter(source,title,after):continue
   seen.add(url);items.append(product_item(app,source,url,title,published,after))
  return items
 

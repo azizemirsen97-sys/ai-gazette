@@ -16,7 +16,11 @@ def canonical_url(url):
 
 def refresh(snapshot, fetch_source=collect):
     stamp=datetime.now(timezone.utc).isoformat()
-    items={item['id']:item for item in snapshot['publications']}
+    source_by_id={source['id']:source for source in catalog.SOURCES}
+    def keep(item):
+        source=source_by_id.get(item.get('source_id'))
+        return not (item.get('module')=='products' and source and not catalog.matches_source_filter(source,item.get('title',''),item.get('description','')))
+    items={item['id']:item for item in snapshot['publications'] if keep(item)}
     statuses={s['id']:s for s in snapshot.get('sources',[])}
     failures=0
     with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:

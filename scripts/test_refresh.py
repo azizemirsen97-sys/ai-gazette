@@ -13,6 +13,11 @@ class RefreshTests(unittest.TestCase):
   self.assertEqual(out['publications'][0]['profiles'][0]['name'],'Guest')
   self.assertEqual(len(out['publications']),2)
   self.assertEqual(out['refresh_failures'],1)
+ def test_removes_old_product_items_that_no_longer_match_source_filter(self):
+  snapshot={'episode':{'url':'https://example.com/pilot'},'publications':[{'id':'old','url':'https://example.com/old','published':'2026-09-01','module':'products','source_id':'maker','title':'An opinion about AI','description':''}]}
+  source={'id':'maker','module':'products','title_keywords':['launch']}
+  with patch.object(refresh.catalog,'SOURCES',[source]),contextlib.redirect_stdout(io.StringIO()):out=refresh.refresh(snapshot,lambda s:[])
+  self.assertEqual(out['publications'],[])
  def test_total_failure_does_not_publish(self):
   with patch.object(refresh.catalog,'SOURCES',[{'id':'bad'}]),contextlib.redirect_stdout(io.StringIO()),self.assertRaises(RuntimeError):
    refresh.refresh({'episode':{},'publications':[]},lambda s:1/0)
