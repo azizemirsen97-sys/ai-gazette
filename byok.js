@@ -13,20 +13,20 @@ window.gazetteAI={
  configured(provider){const s=readAISettings();return !!s.keys[provider||s.provider]},
  provider(){return readAISettings().provider},
  name(provider){return AI_PROVIDERS[provider||readAISettings().provider]?.name||'AI'},
- async ask({system,prompt,provider}){
+ async ask({system,prompt,provider,maxTokens=1800}){
   const settings=readAISettings(),id=provider||settings.provider,key=settings.keys[id],config=AI_PROVIDERS[id];
   if(!key)throw Error(`Add your ${config.name} API key first.`);
   let response,body;
   if(id==='openai'||id==='xai'){
-   response=await fetch(id==='openai'?'https://api.openai.com/v1/responses':'https://api.x.ai/v1/responses',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:config.model,store:false,tools:[{type:'web_search'}],input:[{role:'system',content:system},{role:'user',content:prompt}]})});
+   response=await fetch(id==='openai'?'https://api.openai.com/v1/responses':'https://api.x.ai/v1/responses',{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:config.model,store:false,max_output_tokens:maxTokens,tools:[{type:'web_search'}],input:[{role:'system',content:system},{role:'user',content:prompt}]})});
    body=await response.json();if(!response.ok)throw Error(body.error?.message||`${config.name} rejected this request.`);
    return body.output_text||(body.output||[]).flatMap(x=>x.content||[]).filter(x=>x.type==='output_text').map(x=>x.text).join('\n');
   }
   if(id==='anthropic'){
-   response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:config.model,max_tokens:1800,system,tools:[{type:'web_search_20250305',name:'web_search',max_uses:4}],messages:[{role:'user',content:prompt}]})});
+   response=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json','x-api-key':key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},body:JSON.stringify({model:config.model,max_tokens:maxTokens,system,tools:[{type:'web_search_20250305',name:'web_search',max_uses:8}],messages:[{role:'user',content:prompt}]})});
    body=await response.json();if(!response.ok)throw Error(body.error?.message||'Anthropic rejected this request.');return (body.content||[]).filter(x=>x.type==='text').map(x=>x.text).join('\n');
   }
-  response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}],tools:[{googleSearch:{}}]})});
+  response=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${config.model}:generateContent`,{method:'POST',headers:{'Content-Type':'application/json','x-goog-api-key':key},body:JSON.stringify({systemInstruction:{parts:[{text:system}]},contents:[{role:'user',parts:[{text:prompt}]}],generationConfig:{maxOutputTokens:maxTokens},tools:[{googleSearch:{}}]})});
   body=await response.json();if(!response.ok)throw Error(body.error?.message||'Gemini rejected this request.');return (body.candidates?.[0]?.content?.parts||[]).map(x=>x.text||'').join('\n');
  }
 };
