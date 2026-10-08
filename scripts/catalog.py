@@ -14,7 +14,7 @@ SOURCES=[
  {'id':'a16z-articles','name':'a16z Articles','module':'authorities','feed':'https://a16z.com/post-sitemap3.xml','parser':'sitemap','days':30,'logo':'/a16z-logo.jpg'},
  {'id':'semianalysis','name':'SemiAnalysis','module':'authorities','feed':'https://semianalysis.substack.com/feed','days':30},
  {'id':'all-in','name':'All-In Podcast','module':'authorities','feed':'https://rss.libsyn.com/shows/254861/destinations/1928300.xml','days':30,'logo':'/all-in-logo.jpg'},
- {'id':'this-week-in-startups','name':'This Week in Startups','module':'authorities','feed':'https://rss.libsyn.com/shows/624860/destinations/5500155.xml','days':30,'logo':'/this-week-in-startups-logo.jpg'},
+ {'id':'this-week-in-startups','name':'This Week in Startups','module':'figures','feed':'https://rss.libsyn.com/shows/624860/destinations/5500155.xml','days':30,'logo':'/this-week-in-startups-logo.jpg'},
  {'id':'dialectic','name':'Dialectic','module':'figures','feed':'https://feeds.megaphone.fm/ICDEI1431648742','days':30,'logo':'/dialectic-logo.jpg'},
  {'id':'colossus-magazine','name':'Colossus Magazine','module':'authorities','feed':'https://feeds.megaphone.fm/colossus-magazine','days':30,'logo':'/colossus-logo.jpg'},
  {'id':'this-week-in-ai','name':'This Week in AI','module':'authorities','feed':'https://anchor.fm/s/10803d078/podcast/rss','days':30,'logo':'/this-week-in-ai-logo.jpg'},
