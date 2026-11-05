@@ -39,6 +39,7 @@ SOURCES=[
  {'id':'tbpn','name':'TBPN','module':'tbpn','feed':'https://feeds.transistor.fm/technology-brother','days':8},
  {'id':'openai','name':'OpenAI','module':'products','feed':'https://openai.com/news/rss.xml','days':120,'categories':['Product'],'logo':'/openai-logo.png'},
  {'id':'anthropic','name':'Anthropic','module':'products','page':'https://www.anthropic.com/news','parser':'anthropic','days':120,'logo':'/anthropic-logo.png'},
+ {'id':'anthropic-release-notes','name':'Anthropic','module':'products','page':'https://support.claude.com/en/articles/12138966-release-notes?version=published','parser':'anthropic-release-notes','days':120,'logo':'/anthropic-logo.png'},
  {'id':'cursor','name':'Cursor','module':'products','feed':'https://cursor.com/changelog/rss.xml','days':120,'logo':'/cursor-logo.png'},
  {'id':'nvidia','name':'NVIDIA','module':'products','feed':'https://blogs.nvidia.com/feed/','days':120,'title_keywords':['launch','introduc','unveil','release','available','debut'],'exclude_title_keywords':['geforce now','game ready','rtx remix'],'logo':'/nvidia-logo.png'},
  {'id':'amd','name':'AMD','module':'products','page':'https://newsroom.amd.com/category/ai/','parser':'amd','days':120,'title_keywords':['launch','introduc','unveil','release','available','debut','ROCm'],'logo':'/amd-logo.png'},
@@ -204,8 +205,30 @@ def parse_anthropic(app,source,html):
   seen.add(url);items.append(product_item(app,source,url,title,published,description))
  return items
 
+def parse_anthropic_release_notes(app,source,html):
+ cutoff=datetime.now(timezone.utc)-timedelta(days=source.get('days',30));items=[];seen=set()
+ body_match=re.search(r'<article\b[^>]*class="[^"]*DocsArticleBody[^"]*"[^>]*>(.*?)</article>',html,re.S|re.I)
+ body=body_match.group(1) if body_match else html
+ date_matches=list(re.finditer(r'<h3\b[^>]*>(?P<date>(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4})</h3>',body,re.I))
+ for index,date_match in enumerate(date_matches):
+  published=datetime.strptime(date_match['date'],'%B %d, %Y').replace(tzinfo=timezone.utc)
+  if published<cutoff:continue
+  end=date_matches[index+1].start() if index+1<len(date_matches) else len(body);section=body[date_match.end():end]
+  entries=list(re.finditer(r'<p>\s*<b>(?P<title>.*?)</b>\s*</p>',section,re.S|re.I))
+  for entry_index,entry in enumerate(entries):
+   title=clean_html_text(entry['title'])
+   if not title or re.search(r'\b(?:access suspended|retired|deprecat(?:ed|ion))\b',title,re.I):continue
+   entry_end=entries[entry_index+1].start() if entry_index+1<len(entries) else len(section);tail=section[entry.end():entry_end]
+   description_match=re.search(r'<p>(.*?)</p>',tail,re.S|re.I);description=clean_html_text(description_match.group(1)) if description_match else ''
+   link_match=re.search(r'<a\b[^>]*href="(https://(?:www\.)?(?:anthropic\.com|claude\.com|support\.claude\.com)/[^"]+)"',tail,re.S|re.I)
+   slug=re.sub(r'[^a-z0-9]+','-',title.lower()).strip('-')[:80];url=html_module.unescape(link_match.group(1)) if link_match else source['page'].split('?')[0]+'#'+published.date().isoformat()+'-'+slug
+   if url in seen:continue
+   seen.add(url);items.append(product_item(app,source,url,title,published,description))
+ return items
+
 def parse_product_page(app,source,html):
  cutoff=datetime.now(timezone.utc)-timedelta(days=source.get('days',30));items=[];seen=set()
+ if source['parser']=='anthropic-release-notes':return parse_anthropic_release_notes(app,source,html)
  if source['parser']=='anthropic':return parse_anthropic(app,source,html)
  if source['parser']=='ramp':
   pattern=re.compile(r'\\"date\\":\\"(?P<date>\d{4}-\d{2}-\d{2})\\",\\"description\\":\\"(?P<description>.*?)\\".*?\\"name\\":\\"(?P<title>.*?)\\",\\"pathname\\":\\"(?P<path>/product-releases/[^\\"]+)',re.S)

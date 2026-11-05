@@ -32,5 +32,11 @@ class RefreshTests(unittest.TestCase):
   '''
   items=catalog.parse_product_page(text_parser,source,html)
   self.assertEqual([item['title'] for item in items],['Introducing Claude Haiku 5.5','Donating Agent Skills'])
+ def test_anthropic_release_notes_capture_multiple_updates_on_one_day(self):
+  source={'id':'anthropic-release-notes','name':'Anthropic','module':'products','page':'https://support.claude.com/en/articles/12138966-release-notes?version=published','parser':'anthropic-release-notes','days':120,'logo':'/anthropic-logo.png'}
+  html='''<article class="DocsArticleBody_body"><h3>October 7, 2026</h3><p><b>Claude Haiku 5.5 launch</b></p><p>Our fastest small model. <a href="https://www.anthropic.com/claude-haiku-5-5">Learn more</a>.</p><p><b>Monthly API credits for Max and Team plans</b></p><p>Plans now include monthly API credits.</p><h3>September 25, 2026</h3><p><b>Build plugins for Claude</b></p><p>Submit plugins through a new developer portal.</p></article>'''
+  items=catalog.parse_product_page(text_parser,source,html)
+  self.assertEqual([item['title'] for item in items],['Claude Haiku 5.5 launch','Monthly API credits for Max and Team plans','Build plugins for Claude'])
+  self.assertEqual(len({item['url'] for item in items}),3)
 
 if __name__=='__main__':unittest.main()
