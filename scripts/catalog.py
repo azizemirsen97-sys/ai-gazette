@@ -197,11 +197,11 @@ def parse_anthropic(app,source,html):
    link_match=re.search(r'<a\b[^>]*class="[^"]*(?:tileLink|title-link)[^"]*"[^>]*href="([^"]+)"',block,re.S|re.I)
   if not link_match:continue
   categories={clean_html_text(label).lower() for _,label in re.findall(r'<a\b[^>]*href="/news/([^"/]+)"[^>]*>(.*?)</a>',block,re.S|re.I)}
-  is_release='product' in categories or bool(re.search(r'^(?:Introducing\s+)?Claude\b|\bClaude Code\b',title,re.I))
+  description_match=re.search(r'<p\b[^>]*>(.*?)</p>',block,re.S|re.I);description=clean_html_text(description_match.group(1)) if description_match else ''
+  is_release='product' in categories or bool(re.search(r'^(?:Introducing\s+)?Claude\b|\bClaude Code\b|\bCyber Verification Program\b|\bClaude Frontier Academy\b',title+' '+description,re.I))
   if not is_release:continue
   url=urljoin(source['page'],link_match.group(1))
   if url in seen:continue
-  description_match=re.search(r'<p\b[^>]*>(.*?)</p>',block,re.S|re.I);description=clean_html_text(description_match.group(1)) if description_match else ''
   seen.add(url);items.append(product_item(app,source,url,title,published,description))
  return items
 

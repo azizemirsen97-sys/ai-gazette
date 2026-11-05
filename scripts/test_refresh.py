@@ -28,10 +28,11 @@ class RefreshTests(unittest.TestCase):
   html='''
   <article><header><a href="/news/announcements">Announcements</a><time>Oct 7, 2026</time></header><a class="tileLink" href="/claude-haiku-5-5"><h3>Introducing Claude Haiku 5.5</h3><p>Our fastest small model.</p></a></article>
   <li data-listing-row="one"><a class="title-link" href="/news/agent-skills"><h3>Donating Agent Skills</h3></a><p>An open standard for agents.</p><a href="/news/product">Product</a><time>Oct 22, 2026</time></li>
+  <li data-listing-row="two"><a class="title-link" href="/news/cyber-verification"><h3>Expanding the Cyber Verification Program</h3></a><p>Advanced cyber capabilities for security professionals.</p><a href="/news/announcements">Announcements</a><time>Oct 6, 2026</time></li>
   <article><header><a href="/news/company">Company</a><time>Oct 20, 2026</time></header><a class="tileLink" href="/news/new-office"><h3>Opening a new office</h3><p>Company news.</p></a></article>
   '''
   items=catalog.parse_product_page(text_parser,source,html)
-  self.assertEqual([item['title'] for item in items],['Introducing Claude Haiku 5.5','Donating Agent Skills'])
+  self.assertEqual([item['title'] for item in items],['Introducing Claude Haiku 5.5','Donating Agent Skills','Expanding the Cyber Verification Program'])
  def test_anthropic_release_notes_capture_multiple_updates_on_one_day(self):
   source={'id':'anthropic-release-notes','name':'Anthropic','module':'products','page':'https://support.claude.com/en/articles/12138966-release-notes?version=published','parser':'anthropic-release-notes','days':120,'logo':'/anthropic-logo.png'}
   html='''<article class="DocsArticleBody_body"><h3>October 7, 2026</h3><p><b>Claude Haiku 5.5 launch</b></p><p>Our fastest small model. <a href="https://www.anthropic.com/claude-haiku-5-5">Learn more</a>.</p><p><b>Monthly API credits for Max and Team plans</b></p><p>Plans now include monthly API credits.</p><h3>September 25, 2026</h3><p><b>Build plugins for Claude</b></p><p>Submit plugins through a new developer portal.</p></article>'''
