@@ -12,7 +12,7 @@ SOURCES=[
  {'id':'dwarkesh','name':'Dwarkesh Podcast','module':'authorities','feed':'https://www.dwarkesh.com/feed','days':30},
  {'id':'a16z','name':'The a16z Show','module':'authorities','feed':'https://feeds.simplecast.com/JGE3yC0V','days':30},
  {'id':'a16z-articles','name':'a16z Articles','module':'authorities','feed':'https://a16z.com/post-sitemap3.xml','parser':'sitemap','days':30,'logo':'/a16z-logo.jpg'},
- {'id':'semianalysis','name':'SemiAnalysis','module':'authorities','feed':'https://semianalysis.substack.com/feed','days':30},
+ {'id':'semianalysis','name':'SemiAnalysis','module':'authorities','feed':'https://newsletter.semianalysis.com/feed','days':30},
  {'id':'all-in','name':'All-In Podcast','module':'authorities','feed':'https://rss.libsyn.com/shows/254861/destinations/1928300.xml','days':30,'logo':'/all-in-logo.jpg'},
  {'id':'this-week-in-startups','name':'This Week in Startups','module':'figures','feed':'https://rss.libsyn.com/shows/624860/destinations/5500155.xml','days':30,'logo':'/this-week-in-startups-logo.jpg'},
  {'id':'dialectic','name':'Dialectic','module':'figures','feed':'https://feeds.megaphone.fm/ICDEI1431648742','days':30,'logo':'/dialectic-logo.jpg'},
@@ -33,7 +33,6 @@ SOURCES=[
  {'id':'relentless','name':'Relentless','module':'figures','feed':'https://anchor.fm/s/e402cdc8/podcast/rss','days':30,'logo':'/relentless-logo.jpg'},
  {'id':'invest-like-the-best','name':'Invest Like the Best','module':'figures','feed':'https://feeds.megaphone.fm/CLS2859450455','days':30,'logo':'/invest-like-the-best-logo.jpg'},
  {'id':'lex-fridman','name':'Lex Fridman Podcast','module':'figures','feed':'https://lexfridman.com/feed/podcast/','days':30},
- {'id':'greg-isenberg','name':'The Startup Ideas Podcast · Greg Isenberg','module':'figures','feed':'https://rss2.flightcast.com/ordbkg8yojpehffas7vr7qpc.xml','days':30},
  {'id':'sabrina-halper','name':'The Sabrina Halper Show','module':'figures','feed':'https://anchor.fm/s/9c3d9f04/podcast/rss','days':30},
  {'id':'y-combinator','name':'Y Combinator Startup Podcast','module':'figures','feed':'https://anchor.fm/s/8c1524bc/podcast/rss','days':30},
  {'id':'sourcery','name':'Sourcery with Molly O’Shea','module':'figures','feed':'https://anchor.fm/s/f192713c/podcast/rss','days':30},
@@ -179,8 +178,35 @@ def product_item(app,source,url,title,published,description=''):
  identifier=hashlib.sha256(url.rstrip('/').encode()).hexdigest()[:24]
  return dict(id=identifier,url=url,title=title,published=published.isoformat(),source=source['name'],source_id=source['id'],module='products',guests=[],format='Product release',length='',logo=source['logo'],video='',description=plain(app,description)[:5000],transcript_url=None,categories=['Product'],is_diet=False)
 
+def clean_html_text(value):
+ return ' '.join(html_module.unescape(re.sub(r'<[^>]+>',' ',value or '')).split())
+
+def parse_anthropic(app,source,html):
+ cutoff=datetime.now(timezone.utc)-timedelta(days=source.get('days',30));items=[];seen=set()
+ months='January|February|March|April|May|June|July|August|September|October|November|December|Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec'
+ date_re=r'((?:'+months+r')\s+\d{1,2},\s+\d{4})'
+ blocks=re.findall(r'<article\b[^>]*>(.*?)</article>',html,re.S|re.I)+re.findall(r'<li\b[^>]*data-listing-row[^>]*>(.*?)</li>',html,re.S|re.I)
+ for block in blocks:
+  title_match=re.search(r'<h3\b[^>]*>(.*?)</h3>',block,re.S|re.I);date_match=re.search(r'<time\b[^>]*>\s*'+date_re+r'\s*</time>',block,re.S|re.I)
+  if not title_match or not date_match:continue
+  title=clean_html_text(title_match.group(1));published=datetime.strptime(date_match.group(1),'%B %d, %Y' if len(date_match.group(1).split()[0])>3 else '%b %d, %Y').replace(tzinfo=timezone.utc)
+  if published<cutoff:continue
+  link_match=re.search(r'<a\b[^>]*href="([^"]+)"[^>]*>\s*(?:<span\b[^>]*>.*?</span>\s*)*<h3\b',block,re.S|re.I)
+  if not link_match:
+   link_match=re.search(r'<a\b[^>]*class="[^"]*(?:tileLink|title-link)[^"]*"[^>]*href="([^"]+)"',block,re.S|re.I)
+  if not link_match:continue
+  categories={clean_html_text(label).lower() for _,label in re.findall(r'<a\b[^>]*href="/news/([^"/]+)"[^>]*>(.*?)</a>',block,re.S|re.I)}
+  is_release='product' in categories or bool(re.search(r'^(?:Introducing\s+)?Claude\b|\bClaude Code\b',title,re.I))
+  if not is_release:continue
+  url=urljoin(source['page'],link_match.group(1))
+  if url in seen:continue
+  description_match=re.search(r'<p\b[^>]*>(.*?)</p>',block,re.S|re.I);description=clean_html_text(description_match.group(1)) if description_match else ''
+  seen.add(url);items.append(product_item(app,source,url,title,published,description))
+ return items
+
 def parse_product_page(app,source,html):
  cutoff=datetime.now(timezone.utc)-timedelta(days=source.get('days',30));items=[];seen=set()
+ if source['parser']=='anthropic':return parse_anthropic(app,source,html)
  if source['parser']=='ramp':
   pattern=re.compile(r'\\"date\\":\\"(?P<date>\d{4}-\d{2}-\d{2})\\",\\"description\\":\\"(?P<description>.*?)\\".*?\\"name\\":\\"(?P<title>.*?)\\",\\"pathname\\":\\"(?P<path>/product-releases/[^\\"]+)',re.S)
   for match in pattern.finditer(html):
@@ -194,7 +220,6 @@ def parse_product_page(app,source,html):
  for card in parser.cards:
   href=card['href'];text=' '.join(card['text'].split());match=date_re.search(text)
   if not match or '/news/' not in href:continue
-  if source['parser']=='anthropic' and not re.search(r'\bProduct\b',text[:match.start()+20]):continue
   published=datetime.strptime(match['date'],'%B %d, %Y' if len(match['date'].split()[0])>3 else '%b %d, %Y').replace(tzinfo=timezone.utc)
   url=urljoin(source['page'],href)
   if published<cutoff or url in seen:continue

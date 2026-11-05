@@ -1,6 +1,8 @@
 import contextlib,io,unittest
 from unittest.mock import patch
 import refresh
+import catalog
+import text_parser
 
 class RefreshTests(unittest.TestCase):
  def test_preserves_analysis_and_failed_source_history(self):
@@ -21,5 +23,14 @@ class RefreshTests(unittest.TestCase):
  def test_total_failure_does_not_publish(self):
   with patch.object(refresh.catalog,'SOURCES',[{'id':'bad'}]),contextlib.redirect_stdout(io.StringIO()),self.assertRaises(RuntimeError):
    refresh.refresh({'episode':{},'publications':[]},lambda s:1/0)
+ def test_anthropic_current_newsroom_layout_captures_products_and_models(self):
+  source={'id':'anthropic','name':'Anthropic','module':'products','page':'https://www.anthropic.com/news','parser':'anthropic','days':120,'logo':'/anthropic-logo.png'}
+  html='''
+  <article><header><a href="/news/announcements">Announcements</a><time>Oct 7, 2026</time></header><a class="tileLink" href="/claude-haiku-5-5"><h3>Introducing Claude Haiku 5.5</h3><p>Our fastest small model.</p></a></article>
+  <li data-listing-row="one"><a class="title-link" href="/news/agent-skills"><h3>Donating Agent Skills</h3></a><p>An open standard for agents.</p><a href="/news/product">Product</a><time>Oct 22, 2026</time></li>
+  <article><header><a href="/news/company">Company</a><time>Oct 20, 2026</time></header><a class="tileLink" href="/news/new-office"><h3>Opening a new office</h3><p>Company news.</p></a></article>
+  '''
+  items=catalog.parse_product_page(text_parser,source,html)
+  self.assertEqual([item['title'] for item in items],['Introducing Claude Haiku 5.5','Donating Agent Skills'])
 
 if __name__=='__main__':unittest.main()
